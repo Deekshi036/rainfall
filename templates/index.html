@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌧️ Rainfall Prediction System - India Agriculture</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🌧️ Rainfall Prediction System</h1>
+                <p class="subtitle">AI-Powered Weather Forecasting for Agriculture in India</p>
+                <p class="description">Predict tomorrow's rainfall using advanced machine learning • Help farmers plan irrigation and crop management</p>
+            </div>
+        </header>
+
+        <!-- Alert Messages -->
+        {% if error %}
+        <div class="alert alert-error">
+            <strong>⚠️ Error:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        {% if result %}
+        <div class="result-card">
+            <div class="result-header">
+                <h2>📊 Prediction Results</h2>
+                <span class="timestamp">{{ result.timestamp }}</span>
+            </div>
+            
+            <div class="prediction-result {{ 'rain' if result.prediction_class == 1 else 'no-rain' }}">
+                <div class="prediction-icon">
+                    {% if result.prediction_class == 1 %}
+                        ☔
+                    {% else %}
+                        ☀️
+                    {% endif %}
+                </div>
+                <div class="prediction-text">
+                    <h3>{{ result.prediction }}</h3>
+                    {% if result.confidence %}
+                    <p class="confidence">Confidence: <strong>{{ result.confidence }}%</strong></p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if result.prob_rain and result.prob_no_rain %}
+            <div class="probability-bars">
+                <div class="prob-item">
+                    <div class="prob-label">
+                        <span>☔ Rain Probability</span>
+                        <strong>{{ result.prob_rain }}%</strong>
+                    </div>
+                    <div class="prob-bar">
+                        <div class="prob-fill rain-fill" data-width="{{ result.prob_rain | default(0) | int }}"></div>
+                    </div>
+                </div>
+
+                <div class="prob-item">
+                    <div class="prob-label">
+                        <span>☀️ No Rain Probability</span>
+                        <strong>{{ result.prob_no_rain }}%</strong>
+                    </div>
+                    <div class="prob-bar">
+                        <div class="prob-fill no-rain-fill" data-width="{{ result.prob_no_rain | default(0) | int }}"></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="action-buttons">
+                <button onclick="window.location.href='/'" class="btn btn-secondary">🔄 New Prediction</button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Prediction Form -->
+        <div class="form-card">
+            <h2>📝 Enter Weather Parameters</h2>
+            <p class="form-instruction">Fill in all the weather measurements from today to predict tomorrow's rainfall</p>
+            
+            <form method="POST" action="/predict" id="predictionForm">
+                <div class="form-grid">
+                    <!-- Temperature Section -->
+                    <div class="form-section">
+                        <h3 class="section-title">🌡️ Temperature (°C)</h3>
+                        <div class="form-group">
+                            <label for="MinTemp">Minimum Temperature</label>
+                            <input type="number" step="0.1" name="MinTemp" id="MinTemp" 
+                                   value="{{ form_data.MinTemp if form_data else '' }}" 
+                                   placeholder="e.g., 13.4" required>
+                            <small>Daily minimum temperature in Celsius</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="MaxTemp">Maximum Temperature</label>
+                            <input type="number" step="0.1" name="MaxTemp" id="MaxTemp" 
+                                   value="{{ form_data.MaxTemp if form_data else '' }}" 
+                                   placeholder="e.g., 26.9" required>
+                            <small>Daily maximum temperature in Celsius</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="Temp9am">Temperature at 9am</label>
+                            <input type="number" step="0.1" name="Temp9am" id="Temp9am" 
+                                   value="{{ form_data.Temp9am if form_data else '' }}" 
+                                   placeholder="e.g., 16.9" required>
+                            <small>Temperature measured at 9am</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="Temp3pm">Temperature at 3pm</label>
+                            <input type="number" step="0.1" name="Temp3pm" id="Temp3pm" 
+                                   value="{{ form_data.Temp3pm if form_data else '' }}" 
+                                   placeholder="e.g., 21.8" required>
+                            <small>Temperature measured at 3pm</small>
+                        </div>
+                    </div>
+
+                    <!-- Rainfall & Wind Section -->
+                    <div class="form-section">
+                        <h3 class="section-title">🌧️ Rainfall (mm)</h3>
+                        <div class="form-group">
+                            <label for="Rainfall">Rainfall Amount</label>
+                            <input type="number" step="0.1" name="Rainfall" id="Rainfall" 
+                                   value="{{ form_data.Rainfall if form_data else '' }}" 
+                                   placeholder="e.g., 0.6" required>
+                            <small>Amount of rainfall in millimeters</small>
+                        </div>
+                        
+                        <h3 class="section-title" style="margin-top: 1.5rem;">💨 Wind Speed (km/h)</h3>
+                        <div class="form-group">
+                            <label for="WindGustSpeed">Wind Gust Speed</label>
+                            <input type="number" step="0.1" name="WindGustSpeed" id="WindGustSpeed" 
+                                   value="{{ form_data.WindGustSpeed if form_data else '' }}" 
+                                   placeholder="e.g., 44.0" required>
+                            <small>Maximum wind gust speed in km/h</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="WindSpeed9am">Wind Speed at 9am</label>
+                            <input type="number" step="0.1" name="WindSpeed9am" id="WindSpeed9am" 
+                                   value="{{ form_data.WindSpeed9am if form_data else '' }}" 
+                                   placeholder="e.g., 20.0" required>
+                            <small>Wind speed at 9am in km/h</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="WindSpeed3pm">Wind Speed at 3pm</label>
+                            <input type="number" step="0.1" name="WindSpeed3pm" id="WindSpeed3pm" 
+                                   value="{{ form_data.WindSpeed3pm if form_data else '' }}" 
+                                   placeholder="e.g., 24.0" required>
+                            <small>Wind speed at 3pm in km/h</small>
+                        </div>
+                    </div>
+
+                    <!-- Humidity Section -->
+                    <div class="form-section">
+                        <h3 class="section-title">💧 Humidity (%)</h3>
+                        <div class="form-group">
+                            <label for="Humidity9am">Humidity at 9am</label>
+                            <input type="number" step="0.1" name="Humidity9am" id="Humidity9am" 
+                                   value="{{ form_data.Humidity9am if form_data else '' }}" 
+                                   placeholder="e.g., 71.0" required min="0" max="100">
+                            <small>Relative humidity at 9am (0-100%)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="Humidity3pm">Humidity at 3pm</label>
+                            <input type="number" step="0.1" name="Humidity3pm" id="Humidity3pm" 
+                                   value="{{ form_data.Humidity3pm if form_data else '' }}" 
+                                   placeholder="e.g., 48.0" required min="0" max="100">
+                            <small>Relative humidity at 3pm (0-100%)</small>
+                        </div>
+                    </div>
+
+                    <!-- Pressure Section -->
+                    <div class="form-section">
+                        <h3 class="section-title">🔬 Atmospheric Pressure (hPa)</h3>
+                        <div class="form-group">
+                            <label for="Pressure9am">Pressure at 9am</label>
+                            <input type="number" step="0.1" name="Pressure9am" id="Pressure9am" 
+                                   value="{{ form_data.Pressure9am if form_data else '' }}" 
+                                   placeholder="e.g., 1007.7" required>
+                            <small>Atmospheric pressure at 9am in hPa</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="Pressure3pm">Pressure at 3pm</label>
+                            <input type="number" step="0.1" name="Pressure3pm" id="Pressure3pm" 
+                                   value="{{ form_data.Pressure3pm if form_data else '' }}" 
+                                   placeholder="e.g., 1007.1" required>
+                            <small>Atmospheric pressure at 3pm in hPa</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">🔮 Predict Rainfall</button>
+                    <button type="button" onclick="clearForm()" class="btn btn-secondary">🔄 Clear Form</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Info Section -->
+        <div class="info-card">
+            <h3>ℹ️ About This System</h3>
+            <p>This rainfall prediction system uses machine learning models trained on historical weather data from India. It helps:</p>
+            <ul>
+                <li>🌾 Farmers plan crop irrigation and field operations</li>
+                <li>🚜 Agricultural experts optimize water usage</li>
+                <li>📊 Policymakers assess agricultural risk</li>
+                <li>⚠️ Insurance agencies evaluate weather-related risks</li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>🌾 Rainfall Prediction System for Agriculture in India | Built with Flask & Machine Learning</p>
+            <p class="footer-small">Exploratory Analysis of Rainfall Data in India for Agriculture</p>
+        </footer>
+    </div>
+
+    <script>
+        // Clear form function - removes all values
+        function clearForm() {
+            const form = document.getElementById('predictionForm');
+            form.reset();
+            
+            // Clear all input values (including server-side values)
+            const inputs = document.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+                input.value = '';
+            });
+        }
+
+        // Form validation
+        document.getElementById('predictionForm').addEventListener('submit', function(e) {
+            const inputs = this.querySelectorAll('input[required]');
+            let isValid = true;
+            
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('error');
+                } else {
+                    input.classList.remove('error');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('⚠️ Please fill in all required fields');
+            }
+        });
+
+        // Clear error highlighting on input
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('error');
+            });
+        });
+
+        // Smooth scroll to results
+        document.addEventListener("DOMContentLoaded", function () {
+            const resultCard = document.querySelector('.result-card');
+            if (resultCard) {
+                resultCard.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+            
+            // Set probability bar widths
+            document.querySelectorAll('.prob-fill[data-width]').forEach(function (el) {
+                var v = el.getAttribute('data-width');
+                if (!v) v = '0';
+                el.style.width = v + '%';
+            });
+        });
+    </script>
+</body>
+</html>
